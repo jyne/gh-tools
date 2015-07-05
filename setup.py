@@ -1,13 +1,14 @@
+#!/usr/bin/env python
 from setuptools import setup, find_packages
 from codecs import open
 from os import path
 
 setup(
     name='gh-tools',
-    version='0.1.0',
+    version='0.1.1',
     description=('Collection of command line tools written in Python for ' +
         'GitHub exploration and data mining.'),
-    long_description=open('README.md').read(),
+    long_description=open('README.rst').read(),
     url='https://github.com/robvanderleek/gh-tools',
     author='Rob van der Leek',
     author_email='robvanderleek@gmail.com',
