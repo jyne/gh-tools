@@ -12,3 +12,11 @@ Installation
 You can install gh-tools with `pip`::
 
     $ pip install gh-tools
+
+-----------
+Development
+-----------
+
+For development and testing, install this package locally with ::
+
+    $ ./setup.py install --user
