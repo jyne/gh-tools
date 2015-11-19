@@ -14,18 +14,15 @@ import urllib
 import zipfile
 from sh import git
 
-FAILED_FILENAME='gh-failed.csv'
+from ghtools.utils import log
+from ghtools.WorkList import WorkList
+
 homedir = os.path.expanduser("~")
 os.environ["PATH"] += os.pathsep + os.path.join(homedir, 'bin')
 
 def signal_handler(signal, frame):
     os._exit(0)
 signal.signal(signal.SIGINT, signal_handler)
-
-def log(message):
-    current_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-    print '[' + current_time + '] ' + message
-    sys.stdout.flush()
 
 def get_systems(filename):
     result = []
@@ -70,18 +67,21 @@ For example:
     print usage.replace('$SCRIPTNAME', sys.argv[0])
     sys.exit()
 
-already_analyzed = set()
-if os.path.isfile(FAILED_FILENAME):
+with WorkList as wl:
+    destdir = os.path.join(sys.argv[2], system['id'] + '-' + system['name'])
+    for item in wl:
+        
+
+
+if os.path.isfile(STATUS_FILENAME):
     log("Found existing failed projects file (" + FAILED_FILENAME + ")")
     already_analyzed |= get_project_ids_from_csv_file(FAILED_FILENAME)
-    failedfile = open(FAILED_FILENAME, 'a+')
 else:
     failedfile = open(FAILED_FILENAME, 'w')
     failedfile.write('"Project ID","Project name"\n')
     failedfile.flush()
 
 for system in get_systems(sys.argv[1]):
-    destdir = os.path.join(sys.argv[2], system['id'] + '-' + system['name'])
     try:
         id = long(system['id'])
         if (id in already_analyzed):

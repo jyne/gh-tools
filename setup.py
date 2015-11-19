@@ -32,7 +32,7 @@ setup(
     extras_require={},
     package_data={},
     data_files=[],
-    scripts=['bin/gh-query', 'bin/gh-download', 'bin/gh-analyze'],
+    scripts=['bin/gt-query', 'bin/gt-clone', 'bin/gt-analyze'],
     # To provide executable scripts, use entry points in preference to the
     # "scripts" keyword. Entry points provide cross-platform support and allow
     # pip to create the appropriate form of executable for the target platform.

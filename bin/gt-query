@@ -94,7 +94,8 @@ def do_query(query_opts):
     return result
     
 parser = argparse.ArgumentParser(description="Query GitHub search API")
-parser.add_argument('-q', '--query', default='') 
+parser.add_argument('query', nargs='?', metavar="query", default='', 
+    help="the search query") 
 parser.add_argument('-l', '--language', action='append')
 parser.add_argument('-o', '--outfile', type=argparse.FileType('w', 0),
     help="Write CSV output to this file") 
