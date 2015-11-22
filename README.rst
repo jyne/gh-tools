@@ -1,6 +1,7 @@
 ========
 gh-tools
 ========
+[![Build Status](https://travis-ci.org/robvanderleek/gh-tools.svg?branch=master)](https://travis-ci.org/robvanderleek/gh-tools)
 
 Collection of command line tools written in Python for GitHub exploration and 
 data mining.
