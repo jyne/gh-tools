@@ -1,96 +1,64 @@
 #!/usr/bin/env python
-import csv
-import datetime
-import mysql.connector
+import argparse
+import logging
 import os
-import re
-import shutil
 import signal
-import subprocess
 import sys
-import tempfile
-import time
-import urllib
-import zipfile
 from sh import git
 
-from ghtools.utils import log
 from ghtools.WorkList import WorkList
 
-homedir = os.path.expanduser("~")
-os.environ["PATH"] += os.pathsep + os.path.join(homedir, 'bin')
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+logger.addHandler(logging.StreamHandler())
 
 def signal_handler(signal, frame):
     os._exit(0)
 signal.signal(signal.SIGINT, signal_handler)
 
-def get_systems(filename):
-    result = []
-    file = open(filename, 'rU')
-    contents = csv.reader(file)
-    next(contents)
-    for row in contents:
-        id = row[0]
-        url = row[1]
-        name = row[2]
-        language = row[3]
-        result.append({'id': id, 'name': name, 'url': url, 
-            'language': language}) 
-    return result
-
-def clone_repository(system, directory):
-    log("Shallow cloning repository for project: " + system['name'] + "...")
-    git.clone("--depth=1", system['url'] + '.git', directory)
-
-def get_project_ids_from_csv_file(filename):
-    result = set()
-    lines = open(filename, 'r').readlines() 
-    if len(lines) > 0:
-        del lines[0] # Skip header
-    for line in lines:
-        m = re.match('^"(\\d+)",.*', line)
-        if m is not None:
-            result.add(long(m.group(1)))
-    return result
-
-if (len(sys.argv) != 3 or not os.path.isfile(sys.argv[1]) 
-        or not os.path.isdir(sys.argv[2])):
-    usage = """
-usage: $SCRIPTNAME <CSV file> <destionation directory>
-
-The CSV input file should have a header row and the following row format:
-project-id,github-repo-url,project-name,project-language,created-at
-
-For example:
-169166,https:/github.com/c1982/togi,togi,C#,2009-04-06T09:18:52Z
-"""
-    print usage.replace('$SCRIPTNAME', sys.argv[0])
-    sys.exit()
-
-with WorkList as wl:
-    destdir = os.path.join(sys.argv[2], system['id'] + '-' + system['name'])
-    for item in wl:
-        
-
-
-if os.path.isfile(STATUS_FILENAME):
-    log("Found existing failed projects file (" + FAILED_FILENAME + ")")
-    already_analyzed |= get_project_ids_from_csv_file(FAILED_FILENAME)
-else:
-    failedfile = open(FAILED_FILENAME, 'w')
-    failedfile.write('"Project ID","Project name"\n')
-    failedfile.flush()
-
-for system in get_systems(sys.argv[1]):
+def clone_repository(repo, root_directory):
+    system = repo['id'] + '-' + repo['name']
+    if 'working_directory' in repo:
+        target_dir = repo['working_directory']
+    else:
+        target_dir = os.path.join(root_directory, system)
+    if os.path.isdir(target_dir):
+        logger.info('Found existing working directory, skipping ' + system)
+        repo['working_directory'] = target_dir
+        return
     try:
-        id = long(system['id'])
-        if (id in already_analyzed):
-            log("Skipping project: " + str(id) + " (already analyzed)")
-            continue
-        clone_repository(system, destdir)
+        logger.info("Shallow cloning repository for project: " + 
+            repo['name'] + "...")
+        git.clone("--depth=1", repo['url'] + '.git', target_dir)
+        repo['working_directory'] = target_dir
     except:
-        print "Error in downloading codebase: " + system['name']
-        print sys.exc_info()
-        print "On line: " + format(sys.exc_info()[-1].tb_lineno)
-        failedfile.write('"' + system['id'] + '","' + system['name'] + '"\n')
-        failedfile.flush()
+        logger.error('Error in downloading codebase: ' + repo['name'])
+        logger.error(sys.exc_info())
+        logger.error('On line: ' + format(sys.exc_info()[-1].tb_lineno))
+        repo.set_status_failed()
+
+def process_script_arguments():
+    parser = argparse.ArgumentParser(description='Clone GitHub repositories')
+    parser.add_argument('-i', '--infile', type=argparse.FileType('r'),
+        help='read list of repositories from this JSON file') 
+    parser.add_argument('destination', metavar='destination directory',
+        help='destination directory for cloned repositories')
+    args = parser.parse_args()
+
+    if not os.path.isdir(args.destination):
+        parser.print_help()
+        sys.exit()
+
+    return args
+
+if __name__ == "__main__":
+    args = process_script_arguments()
+    if args.infile is not None:
+        wl = WorkList(args.infile)
+    else:
+        wl = WorkList()
+
+    for repo in wl:
+        clone_repository(repo, args.destination)
+
+    wl.write(sys.stdout)

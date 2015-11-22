@@ -1,124 +1,64 @@
 #!/usr/bin/env python
-import csv
-import datetime
-import mysql.connector
+import argparse
+import json
+import logging
 import os
 import re
 import shutil
 import signal
-import subprocess
-from subprocess import check_output
+from subprocess import check_output, CalledProcessError
 import sys
-import tempfile
-import time
-import urllib
-import zipfile
 from sh import git
 
-DATA_FILENAME = 'gh-data.csv'
-FAILED_FILENAME = 'gh-failed.csv'
+from ghtools.WorkList import WorkList
 
-homedir = os.path.expanduser("~")
-os.environ["PATH"] += os.pathsep + os.path.join(homedir, 'bin')
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+logger.addHandler(logging.StreamHandler())
 
 def signal_handler(signal, frame):
     os._exit(0)
 signal.signal(signal.SIGINT, signal_handler)
 
-def log(message):
-    current_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-    print '[' + current_time + '] ' + message
-    sys.stdout.flush()
+def run_analysis_tool(command, repo):
+    result = check_output([command, repo['working_directory'], repo['id'], 
+        repo['language']])
+    return result.splitlines()[-1]
 
-def get_systems(filename):
-    result = []
-    file = open(filename, 'rU')
-    contents = csv.reader(file)
-    next(contents)
-    for row in contents:
-        id = row[0]
-        url = row[1]
-        name = row[2]
-        language = row[3]
-        result.append({'id': id, 'name': name, 'url': url, 
-            'language': language}) 
-    return result
-
-def clone_repository(system, directory):
-    log("Cloning repository for project: " + system['name'] + "...")
-    git.clone(system['url'] + '.git', directory)
-
-def get_project_ids_from_csv_file(filename):
-    result = set()
-    lines = open(filename, 'r').readlines() 
-    if len(lines) > 0:
-        del lines[0] # Skip header
-    for line in lines:
-        m = re.match('^"(\\d+)",.*', line)
-        if m is not None:
-            result.add(long(m.group(1)))
-    return result
-
-if (len(sys.argv) != 3 or not os.path.isfile(sys.argv[1]) 
-        or not os.path.isfile(sys.argv[2])):
-    usage = """
-usage: $SCRIPTNAME <CSV file> <command>
-
-The CSV input file should have a header row and the following row format:
-project-id,github-repo-url,project-name,project-language,created-at
-
-For example:
-169166,https:/github.com/c1982/togi,togi,C#,2009-04-06T09:18:52Z
-"""
-    print usage.replace('$SCRIPTNAME', sys.argv[0])
-    sys.exit()
-
-already_analyzed = set()
-if os.path.isfile(FAILED_FILENAME):
-    log("Found existing failed projects file (" + FAILED_FILENAME + ")")
-    already_analyzed |= get_project_ids_from_csv_file(FAILED_FILENAME)
-    failedfile = open(FAILED_FILENAME, 'a+')
-else:
-    failedfile = open(FAILED_FILENAME, 'w')
-    failedfile.write('"Project ID","Project name"\n')
-    failedfile.flush()
-
-if os.path.isfile(DATA_FILENAME):
-    log("Found existing project data file (" + DATA_FILENAME + ")")
-    already_analyzed |= get_project_ids_from_csv_file(DATA_FILENAME)
-    outfile = open(DATA_FILENAME, 'a+')
-    outcsv = csv.writer(outfile, quotechar='"', quoting=csv.QUOTE_ALL)
-else:
-    outfile = open(DATA_FILENAME, 'w')
-    outcsv = csv.writer(outfile, quotechar='"', quoting=csv.QUOTE_ALL)
-    outcsv.writerow(['Project ID', 'URL', 'Project name', 'Language'])
-    outfile.flush()
-
-def run_analysis_tool(system, tmpdir):
-    result = check_output([sys.argv[2], tmpdir, system['id'], 
-        system['language']])
-    result.splitlines()[-1]
-
-for system in get_systems(sys.argv[1]):
-    tmpdir = tempfile.mkdtemp()
+def add_analysis_data(repo, data):
     try:
-        id = long(system['id'])
-        if (id in already_analyzed):
-            log("Skipping project: " + str(id) + " (already analyzed)")
-            continue
-        clone_repository(system, tmpdir)
-        analysis_data = run_analysis_tool(system, tmpdir)
-        outcsv.writerow([system['id'], system['url'], system['name'],
-            system['language']] + analysis_data.split(','))
-        outfile.flush()
-    except subprocess.CalledProcessError as e:
-        print e.returncode
-        print e.cmd
-        print e.output
-    except:
-        print "Error in downloading codebase: " + system['name']
-        print sys.exc_info()
-        print "On line: " + format(sys.exc_info()[-1].tb_lineno)
-        failedfile.write('"' + system['id'] + '","' + system['name'] + '"\n')
-        failedfile.flush()
-    shutil.rmtree(tmpdir)
+        o = json.loads(data)
+    except ValueError:
+        o = data
+    repo['analysis_data'] = o
+
+def process_script_arguments():
+    parser = argparse.ArgumentParser(description='Analyze GitHub repositories') 
+    parser.add_argument('-i', '--infile', type=argparse.FileType('r'),
+        help='read list of repositories from this JSON file')
+    parser.add_argument('command',
+        help='command to execute for each repository')
+    args = parser.parse_args()
+
+    return args
+
+if __name__ == "__main__":
+    args = process_script_arguments()
+    if args.infile is not None:
+        wl = WorkList(args.infile)
+    else:
+        wl = WorkList()
+
+    for repo in wl:
+        if not 'working_directory' in repo:
+            logger.error('No working directory found for system' + 
+                repo['name'])
+        try:
+            analysis_data = run_analysis_tool(args.command, repo)
+            add_analysis_data(repo, analysis_data)
+        except CalledProcessError as e:
+            logger.error('Command failed, return code: ' + e.returncode)
+            logger.error('Output:\n' + e.output)
+            repo.set_status_failed()
+
+    wl.write(sys.stdout)
