@@ -29,3 +29,11 @@ Development
 For development and testing, install this package locally with ::
 
     $ ./setup.py install --user
+
+Uploading the package to the PyPi test server ::
+
+    $ python setup.py sdist upload -r https://testpypi.python.org/pypi
+
+Installing the package from the PyPi test server under a user account ::
+
+    $ pip install -i https://testpypi.python.org/pypi gh-tools --user
