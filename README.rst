@@ -32,7 +32,7 @@ For development and testing, install this package locally with ::
 
     $ ./setup.py install --user
 
-Uploading the package to the PyPi test server ::
+(For the maintainer) Uploading the package to the PyPi test server ::
 
     $ python setup.py sdist upload -r https://testpypi.python.org/pypi
 

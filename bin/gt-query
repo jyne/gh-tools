@@ -12,6 +12,7 @@ import sys
 import urllib
 
 from ghtools.WorkList import WorkList, WorkItem
+import ghtools.utils as utils
 
 def signal_handler(signal, frame):
     os._exit(0)
@@ -105,9 +106,17 @@ if __name__ == "__main__":
     parser.add_argument('query', nargs='?', metavar="query", default='', 
         help="the search query") 
     parser.add_argument('-l', '--language', action='append')
+    parser.add_argument('--list-languages', action='store_true',
+        help='List all GitHub language names that can be used in queries')
     parser.add_argument('-o', '--outfile', type=argparse.FileType('w', 0),
         help="Write JSON output to this file") 
     args = parser.parse_args()
+
+    if args.list_languages:
+        langs = utils.get_all_gh_languages()
+        for l in langs:
+            print l
+        sys.exit()
 
     if args.query == '' and args.language is None:
         parser.print_help()

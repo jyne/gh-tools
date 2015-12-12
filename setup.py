@@ -30,7 +30,7 @@ setup(
     packages=find_packages(exclude=['contrib', 'docs', 'tests*']),
     install_requires=[],
     extras_require={},
-    package_data={},
+    package_data={'ghtools': ['languages.yml']},
     data_files=[],
     scripts=['bin/gt-query', 'bin/gt-clone', 'bin/gt-analyze'],
     # To provide executable scripts, use entry points in preference to the
