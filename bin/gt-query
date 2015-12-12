@@ -98,7 +98,15 @@ def do_query(query_opts):
         result.extend(get_projects_data(response))
         sys.stderr.write(' ' + str(page))
         sys.stderr.flush()
-    sys.stderr.write('\nTotal repositories: ' + str(len(result)) + '\n') 
+    sys.stderr.write('\nTotal repositories: ' + str(len(result)) + '\n')
+    return result
+
+def get_unkown_languages(languages):
+    result = []
+    available_languages = utils.get_all_gh_languages()
+    for l in languages:
+        if not l in available_languages:
+            result.append(l)
     return result
     
 if __name__ == "__main__":
@@ -130,6 +138,10 @@ if __name__ == "__main__":
         for p in projects:
             wl.append(WorkItem(p))
     else:
+        unknown_languages = get_unkown_languages(args.language)
+        if len(unknown_languages) > 0:
+            print 'Unknown languages: ' + ', '.join(unknown_languages)
+            sys.exit(1)
         for l in args.language: 
             print "Querying GitHub for language: " + l
             query_opts['q'] = (args.query + ' language:' + l)

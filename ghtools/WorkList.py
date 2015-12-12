@@ -2,7 +2,7 @@ import collections
 import json
 import logging
 import os
-import stat
+import select
 import sys
 
 STATUS_FILENAME = 'gt-status.json'
@@ -11,8 +11,9 @@ def status_file_exists():
     return os.path.isfile(STATUS_FILENAME)
 
 def has_stdin():
-    mode = os.fstat(0).st_mode
-    return stat.S_ISFIFO(mode) or stat.S_ISREG(mode)
+    return not sys.stdin.isatty()
+    # mode = os.fstat(0).st_mode
+    # return stat.S_ISFIFO(mode) or stat.S_ISREG(mode)
 
 class WorkList:
     def __init__(self, worklistfile=None):
@@ -20,7 +21,12 @@ class WorkList:
         if worklistfile is not None:
             self.items += json.load(worklistfile, object_hook=as_WorkItem)
         elif has_stdin():
-            self.items += json.load(sys.stdin, object_hook=as_WorkItem)
+            if type(sys.stdin).__name__ == 'file':
+                if select.select([sys.stdin], [], [], 0)[0]:
+                    self.items += json.load(sys.stdin, object_hook=as_WorkItem)
+            else:
+                input = sys.stdin.read()
+                self.items += json.loads(input, object_hook=as_WorkItem)
         elif status_file_exists(): 
             logging.info('Found gh-tools worklist file, restoring state...')
             self.item.append(json.load(file(STATUS_FILENAME)), 
