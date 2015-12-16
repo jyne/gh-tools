@@ -4,6 +4,7 @@ import logging
 import os
 import signal
 import sys
+
 from sh import git
 
 from ghtools.WorkList import WorkList
@@ -12,9 +13,13 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 logger.addHandler(logging.StreamHandler())
 
+
 def signal_handler(signal, frame):
     os._exit(0)
+
+
 signal.signal(signal.SIGINT, signal_handler)
+
 
 def clone_repository(repo, root_directory):
     system = repo['id'] + '-' + repo['name']
@@ -27,8 +32,8 @@ def clone_repository(repo, root_directory):
         repo['working_directory'] = target_dir
         return
     try:
-        logger.info("Shallow cloning repository for project: " + 
-            repo['name'] + "...")
+        logger.info("Shallow cloning repository for project: " +
+                    repo['name'] + "...")
         git.clone("--depth=1", repo['url'] + '.git', target_dir)
         repo['working_directory'] = target_dir
     except:
@@ -37,12 +42,13 @@ def clone_repository(repo, root_directory):
         logger.error('On line: ' + format(sys.exc_info()[-1].tb_lineno))
         repo.set_status_failed()
 
+
 def process_script_arguments():
     parser = argparse.ArgumentParser(description='Clone GitHub repositories')
     parser.add_argument('-i', '--infile', type=argparse.FileType('r'),
-        help='read list of repositories from this JSON file') 
+                        help='read list of repositories from this JSON file')
     parser.add_argument('destination', metavar='destination directory',
-        help='destination directory for cloned repositories')
+                        help='destination directory for cloned repositories')
     args = parser.parse_args()
 
     if not os.path.isdir(args.destination):
@@ -50,6 +56,7 @@ def process_script_arguments():
         sys.exit()
 
     return args
+
 
 if __name__ == "__main__":
     args = process_script_arguments()

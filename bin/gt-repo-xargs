@@ -3,12 +3,9 @@ import argparse
 import json
 import logging
 import os
-import re
-import shutil
 import signal
-from subprocess import check_output, CalledProcessError
 import sys
-from sh import git
+from subprocess import check_output, CalledProcessError
 
 from ghtools.WorkList import WorkList
 
@@ -21,8 +18,7 @@ def signal_handler(signal, frame):
 signal.signal(signal.SIGINT, signal_handler)
 
 def run_analysis_tool(command, repo):
-    result = check_output([command, repo['working_directory'], repo['id'], 
-        repo['language']])
+    result = check_output([command, repo['working_directory']])
     return result.splitlines()[-1]
 
 def add_analysis_data(repo, data):

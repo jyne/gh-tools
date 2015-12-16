@@ -1,8 +1,9 @@
 import datetime
-import os
-import pkg_resources
 import re
 import sys
+
+import pkg_resources
+
 
 def log(message, out=sys.stdout):
     current_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
