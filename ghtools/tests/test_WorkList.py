@@ -22,7 +22,8 @@ class test_WorkList(TestCase):
 
     def test_WorkItem_wraps_around_dict(self):
         d = {'id': 123, 'a': 1, 'b': 2}
-        wi = WorkList.WorkItem(d)
+        wl = WorkList.WorkList()
+        wi = wl.append(d)
 
         self.assertEquals(123, wi['id'])
         self.assertEquals(1, wi['a'])
@@ -32,7 +33,8 @@ class test_WorkList(TestCase):
         self.assertFalse('a' in wi)
 
     def test_WorkItem_set_status(self):
-        wi = WorkList.WorkItem({})
+        wl = WorkList.WorkList()
+        wi = wl.append({})
 
         self.assertTrue(wi.is_status_ok())
 

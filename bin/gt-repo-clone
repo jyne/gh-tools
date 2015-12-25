@@ -9,17 +9,14 @@ from sh import git
 
 from ghtools.WorkList import WorkList
 
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
+logger = logging.getLogger()
 logger.addHandler(logging.StreamHandler())
-
+logger.setLevel(logging.INFO)
 
 def signal_handler(signal, frame):
     os._exit(0)
 
-
 signal.signal(signal.SIGINT, signal_handler)
-
 
 def clone_repository(repo, root_directory):
     system = repo['id'] + '-' + repo['name']
@@ -42,30 +39,42 @@ def clone_repository(repo, root_directory):
         logger.error('On line: ' + format(sys.exc_info()[-1].tb_lineno))
         repo.set_status_failed()
 
-
-def process_script_arguments():
+def process_script_arguments(args):
     parser = argparse.ArgumentParser(description='Clone GitHub repositories')
-    parser.add_argument('-i', '--infile', type=argparse.FileType('r'),
+    parser.add_argument('-i', '--infile', required=True,
+                        type=argparse.FileType('r+'),
                         help='read list of repositories from this JSON file')
-    parser.add_argument('destination', metavar='destination directory',
+    parser.add_argument('-o', '--output', required=True,
                         help='destination directory for cloned repositories')
-    args = parser.parse_args()
 
-    if not os.path.isdir(args.destination):
+    if len(args) < 2:
         parser.print_help()
-        sys.exit()
+        sys.exit(1)
 
-    return args
+    result = parser.parse_args()
 
+    if not os.path.isdir(result.output):
+        parser.print_help()
+        sys.exit(1)
+
+    return result
 
 if __name__ == "__main__":
-    args = process_script_arguments()
-    if args.infile is not None:
-        wl = WorkList(args.infile)
-    else:
-        wl = WorkList()
+    args = process_script_arguments(sys.argv)
+    try:
+        if args.infile is not None:
+            wl = WorkList(args.infile)
+        else:
+            wl = WorkList()
+    except ValueError as e:
+        logger.error('Error reading JSON worklist:\n' + e.message)
+        sys.exit(1)
 
     for repo in wl:
-        clone_repository(repo, args.destination)
+        if repo.is_status_ok():
+            clone_repository(repo, os.path.abspath(args.output))
+        else:
+            logger.info('Skipping id ' + str(repo['id']))
 
-    wl.write(sys.stdout)
+    if args.infile is None:
+        wl.write(sys.stdout)

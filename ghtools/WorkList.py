@@ -1,6 +1,5 @@
 import collections
 import json
-import logging
 import os
 import select
 import sys
@@ -18,32 +17,38 @@ def has_stdin():
 class WorkList:
     def __init__(self, worklistfile=None):
         self.items = []
+        self._worklistfile = None
         if worklistfile is not None:
-            self.items += json.load(worklistfile, object_hook=as_WorkItem)
+            self.items += json.load(worklistfile, object_hook=self.as_WorkItem)
+            self._worklistfile = worklistfile
         elif has_stdin():
             if type(sys.stdin).__name__ == 'file':
                 if select.select([sys.stdin], [], [], 0)[0]:
-                    self.items += json.load(sys.stdin, object_hook=as_WorkItem)
+                    self.items += json.load(sys.stdin,
+                                            object_hook=self.as_WorkItem)
             else:
                 input = sys.stdin.read()
-                self.items += json.loads(input, object_hook=as_WorkItem)
-        elif status_file_exists(): 
-            logging.info('Found gh-tools worklist file, restoring state...')
-            self.item.append(json.load(file(STATUS_FILENAME)), 
-                object_hook=as_WorkItem) 
+                self.items += json.loads(input, object_hook=self.as_WorkItem)
+        elif status_file_exists():
+            self.item.append(json.load(file(STATUS_FILENAME)),
+                             object_hook=self.as_WorkItem)
+            self._worklistfile = open(STATUS_FILENAME, 'w')
 
     def append(self, data_dict):
-        self.items.append(WorkItem(data_dict))
+        result = WorkItem(data_dict, self)
+        self.items.append(result)
+        return result
 
     def write(self, out):
-        output = json.dumps(self.items, cls=WorkItemJSONEncoder, 
-            sort_keys=True, indent=4)
+        output = json.dumps(self.items, cls=WorkItemJSONEncoder,
+                            sort_keys=True, indent=4)
+        out.seek(0)
         out.write(output + '\n')
         out.flush()
 
     def save(self):
         with open(STATUS_FILENAME, 'w') as outfile:
-            self.write(outfile) 
+            self.write(outfile)
 
     def __getitem__(self, key):
         return self.items[key]
@@ -52,13 +57,17 @@ class WorkList:
         return len(self.items)
 
     def __iter__(self):
-        l = []
-        for item in self.items:
-            if item.is_status_ok():
-                l.append(item)
-            else:
-                logging.info('Skipping id ' + str(item['id']))
-        return iter(l)
+        return iter(self.items)
+
+    def as_WorkItem(self, dct):
+        if 'status' in dct and 'data' in dct:
+            return WorkItem(dct['data'], self, dct['status'])
+        else:
+            return dct
+
+    def persist(self):
+        if self._worklistfile is not None:
+            self.write(self._worklistfile)
 
 def to_unicode(v):
     if isinstance(v, unicode):
@@ -70,28 +79,27 @@ def to_unicode(v):
 
 class WorkItemJSONEncoder(json.JSONEncoder):
     def default(self, o):
-        return o.__dict__
+        result = o.__dict__.copy()
+        del result['_work_list']
+        return result
 
-def as_WorkItem(dct):
-    if 'status' in dct and 'data' in dct:
-        return WorkItem(dct['data'], dct['status'])
-    else:
-        return dct
-
-# Wrapper around data dict with a unique ID and some bookkeeping logic added.
+# Wrapper around data dict with some bookkeeping logic added.
 class WorkItem(collections.MutableMapping):
-    def __init__(self, data, status='OK'):
-        self.status = status
+    def __init__(self, data, work_list, status='OK'):
         self.data = {to_unicode(k): to_unicode(v) for k, v in data.items()}
+        self.status = status
+        self._work_list = work_list
 
     def __delitem__(self, key):
         del self.data[key]
+        self._work_list.persist()
 
     def __getitem__(self, key):
         return self.data[to_unicode(key)]
 
     def __setitem__(self, key, value):
         self.data[to_unicode(key)] = to_unicode(value)
+        self._work_list.persist()
 
     def __iter__(self):
         return iter(self.data)
@@ -107,3 +115,4 @@ class WorkItem(collections.MutableMapping):
 
     def set_status_failed(self):
         self.status = 'FAILED'
+        self._work_list.persist()

@@ -38,4 +38,4 @@ For development and testing, install this package locally with ::
 
 Installing the package from the PyPi test server under a user account ::
 
-    $ pip install -i https://testpypi.python.org/pypi gh-tools --user
+    $ pip install -i https://testpypi.python.org/pypi --extra-index-url https://pypi.python.org/pypi gh-tools --user
