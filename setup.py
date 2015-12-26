@@ -5,7 +5,7 @@ from setuptools import setup, find_packages
 
 setup(
         name='gh-tools',
-        version='0.2.5',
+        version='0.2.6',
         description=('Collection of command line tools written in Python for ' +
                      'GitHub exploration and data mining.'),
         long_description=open('README.rst').read(),
@@ -34,7 +34,7 @@ setup(
         extras_require={},
         package_data={'ghtools': ['languages.yml']},
         data_files=[],
-        scripts=['bin/gt-repo-query', 'bin/gt-repo-clone', 'bin/gt-repo-xargs'],
+        scripts=['bin/gt-query', 'bin/gt-clone', 'bin/gt-xargs'],
         # To provide executable scripts, use entry points in preference to the
         # "scripts" keyword. Entry points provide cross-platform support and allow
         # pip to create the appropriate form of executable for the target platform.

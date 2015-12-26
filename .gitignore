@@ -4,3 +4,4 @@
 build/
 dist/
 gh_tools.egg-info/
+venv/

@@ -8,7 +8,7 @@ from subprocess import call
 
 from ghtools.WorkList import WorkList
 
-logger = logging.getLogger()
+logger = logging.getLogger(__name__)
 logger.addHandler(logging.StreamHandler())
 logger.setLevel(logging.INFO)
 
@@ -22,12 +22,14 @@ def process_script_arguments(args):
     parser.add_argument('-f', '--force', action='store_true',
                         help='also run for failed repositories')
     parser.add_argument('-i', '--infile', type=argparse.FileType('r+'),
+                        required=True,
                         help='read list of repositories from this JSON file')
-    parser.add_argument('command',
+    parser.add_argument('-c', '--command', required=True,
                         help='command to execute for each repository')
     if len(args) < 2:
         parser.print_help()
         sys.exit(1)
+
     result = parser.parse_args()
     return result
 
@@ -46,7 +48,7 @@ if __name__ == "__main__":
             logger.error('No working directory found for system' +
                          repo['name'])
         try:
-            call([args.command, repo['working_directory']])
+            call([args.command + ' ' + repo['working_directory']], shell=True)
         except OSError as e:
             logger.error('Command failed: ' + str(e))
             repo.set_status_failed()

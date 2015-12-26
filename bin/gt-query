@@ -12,7 +12,7 @@ import requests
 import ghtools.utils as utils
 from ghtools.WorkList import WorkList
 
-logger = logging.getLogger()
+logger = logging.getLogger(__name__)
 logger.addHandler(logging.StreamHandler())
 logger.setLevel(logging.INFO)
 
@@ -116,16 +116,16 @@ def get_unkown_languages(languages):
 epilog = """
 Examples:
     1. Get the list of the most starred Java repositories:
-        $ gt-repo-query -l java
+        $ gt-query -l java
 
     2. Get the list of repositories that have the term "tetris":
-        $ gt-repo-query tetris
+        $ gt-query tetris
 """
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
             formatter_class=argparse.RawDescriptionHelpFormatter,
-            description='Query GitHub search API',
+            description='Query the GitHub search API',
             epilog=epilog)
     parser.add_argument('query', nargs='?', metavar="query", default='',
                         help="the search query")
