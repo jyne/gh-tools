@@ -110,9 +110,16 @@ class WorkItem(collections.MutableMapping):
     def __repr__(self):
         return str(self.data)
 
+    def set_status_ok(self):
+        self.status = 'OK'
+        self._work_list.persist()
+
     def is_status_ok(self):
         return self.status == 'OK'
 
     def set_status_failed(self):
         self.status = 'FAILED'
         self._work_list.persist()
+
+    def hello(self):
+        print 'hello'

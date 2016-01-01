@@ -33,6 +33,7 @@ def clone_repository(repo, root_directory):
                     repo['name'] + "...")
         git.clone("--depth=1", repo['url'] + '.git', target_dir)
         repo['working_directory'] = target_dir
+        repo.set_status_ok()
     except:
         logger.error('Error in downloading codebase: ' + repo['name'])
         logger.error(sys.exc_info())

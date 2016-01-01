@@ -48,7 +48,9 @@ if __name__ == "__main__":
             logger.error('No working directory found for system' +
                          repo['name'])
         try:
-            call([args.command + ' ' + repo['working_directory']], shell=True)
+            retcode = call([args.command + ' ' + repo['working_directory']], shell=True)
+            if retcode != 0:
+                repo.set_status_failed()
         except OSError as e:
             logger.error('Command failed: ' + str(e))
             repo.set_status_failed()
