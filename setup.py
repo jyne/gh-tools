@@ -5,7 +5,7 @@ from setuptools import setup, find_packages
 
 setup(
         name='gh-tools',
-        version='0.2.6',
+        version='0.2.7',
         description=('Collection of command line tools written in Python for ' +
                      'GitHub exploration and data mining.'),
         long_description=open('README.rst').read(),

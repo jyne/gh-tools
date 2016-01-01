@@ -46,6 +46,8 @@ def process_script_arguments(args):
                         help='read list of repositories from this JSON file')
     parser.add_argument('-o', '--output', required=True,
                         help='destination directory for cloned repositories')
+    parser.add_argument('-r', '--retry', action='store_true',
+                        help='retry failed entries in JSON file')
 
     if len(args) < 2:
         parser.print_help()
@@ -71,10 +73,14 @@ if __name__ == "__main__":
         sys.exit(1)
 
     for repo in wl:
-        if repo.is_status_ok():
-            clone_repository(repo, os.path.abspath(args.output))
+        if args.retry:
+            if not repo.is_status_ok():
+                clone_repository(repo, os.path.abspath(args.output))
         else:
-            logger.info('Skipping id ' + str(repo['id']))
+            if repo.is_status_ok():
+                clone_repository(repo, os.path.abspath(args.output))
+            else:
+                logger.info('Skipping id ' + str(repo['id']))
 
     if args.infile is None:
         wl.write(sys.stdout)
