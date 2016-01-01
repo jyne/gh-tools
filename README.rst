@@ -21,7 +21,11 @@ There are a couple of ways to install this package. Pick one of the following:
 
     $ pip install -i https://testpypi.python.org/pypi --extra-index-url https://pypi.python.org/pypi gh-tools --user
 
-3. Install this package system-wide with `pip`::
+3. Install this package directly from GitHub (assuming you already have all dependencies)::
+
+    $ pip install git+git://github.com/robvanderleek/gh-tools --user
+    
+4. Install this package system-wide with `pip`::
 
     $ pip install -i https://testpypi.python.org/pypi --extra-index-url https://pypi.python.org/pypi gh-tools
 
